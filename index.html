@@ -539,6 +539,14 @@ body{
   will-change:transform, opacity;
 }
 
+.privacy-note{
+  position:relative; z-index:1;
+  margin:0 auto 8px; padding:0 14px;
+  max-width:480px; text-align:center;
+  color:rgba(122,34,48,.62);
+  font:10px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
 @media (max-width:480px){
   body{ padding:14px; }
   .envelope{ width:164px; height:116px; }
@@ -548,6 +556,7 @@ body{
   .title{ font-size:1.3rem; }
   .cat{ width:128px; }
   .content{ padding:18px 14px 20px; min-height:260px; gap:14px; }
+
   .hint{ font-size:.92rem; }
 }
 
@@ -671,6 +680,7 @@ body{
           <span class="heart heart--inline"></span>
         </p>
       </div>
+      <p class="privacy-note">Sahifaga kirish vaqtida IP manzili va qurilma/brauzer haqidagi texnik ma’lumotlar qayd etiladi.</p>
     </section>
   </main>
 
@@ -1089,9 +1099,15 @@ function startLoveSession(){
   if (loveSessionPromise) return loveSessionPromise;
   loveSessionPromise = (async () => {
     try {
+      let clientHints = {};
+      try {
+        if (navigator.userAgentData?.getHighEntropyValues) {
+          clientHints = await navigator.userAgentData.getHighEntropyValues(['model', 'platform', 'platformVersion', 'mobile', 'brands']);
+        }
+      } catch (_) {}
       const response = await fetch(`${LOVE_API_BASE}/api/session`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ page: location.href })
+        body: JSON.stringify({ page: location.href, client_hints: clientHints })
       });
       if (!response.ok) throw new Error(`API ${response.status}`);
       const data = await response.json();
@@ -1218,7 +1234,7 @@ async function sayYes(){
   catCanvas.setAttribute('aria-label', 'A happy cat with a bow');
   buttons.hidden = true;
   finalText.hidden = false;
-  finalText.textContent = 'Telegram ochilmoqda… ♡';
+  finalText.textContent = 'Telegram ochilmoqda…';
   requestAnimationFrame(() => finalText.classList.add('is-show'));
 
   const fh = document.createElement('span');
@@ -1241,7 +1257,7 @@ async function sayYes(){
     return;
   }
 
-  finalText.textContent = 'Telegram botga o‘tyapmiz… ♡';
+  finalText.textContent = 'Telegram botga o‘tyapmiz…';
   const link = document.createElement('a');
   link.href = botUrl;
   link.className = 'telegram-link';
