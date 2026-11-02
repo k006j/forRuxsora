@@ -1194,23 +1194,31 @@ noBtn.addEventListener('keydown', (e) => {
 
 async function sayYes(){
   if (questionStep === 1){
+    yesBtn.disabled = true;
     proposalAnswers.push({ question: proposalQuestions[0], answer: 'YES' });
     await sendLoveEvent('answer', { question: proposalQuestions[0], answer: 'YES' });
     questionStep = 2;
     title.textContent = proposalQuestions[1];
     resetAnswerButtons();
+    yesBtn.disabled = false;
     return;
   }
 
+  if (questionStep !== 2) return;
+  questionStep = 3;
+  yesBtn.disabled = true;
+  noBtn.disabled = true;
+
   proposalAnswers.push({ question: proposalQuestions[1], answer: 'YES' });
   const finalResult = await sendLoveEvent('answer', { question: proposalQuestions[1], answer: 'YES' });
+
   catState = 'happy';
   title.textContent = 'Javob uchun rahmat!';
   drawSprite(catCanvas, CAT_HAPPY);
   catCanvas.setAttribute('aria-label', 'A happy cat with a bow');
   buttons.hidden = true;
   finalText.hidden = false;
-  finalText.textContent = 'Opening a little chat for us… ♡';
+  finalText.textContent = 'Telegram ochilmoqda… ♡';
   requestAnimationFrame(() => finalText.classList.add('is-show'));
 
   const fh = document.createElement('span');
@@ -1223,21 +1231,30 @@ async function sayYes(){
   win.classList.add('is-celebrate');
   if (!reduceMotion){ heartBurst(); celebrate(); }
 
-  finalText.textContent = 'Endi Telegram bot orqali suhbatni davom ettiramiz ♡';
+  // The session ID is passed in Telegram's deep link so the Worker
+  // can connect this visitor's Telegram chat to this proposal session.
+  const botUrl = finalResult?.bot_url ||
+    (loveSessionId ? `https://t.me/forruxsora_bot?start=${encodeURIComponent(loveSessionId)}` : null);
+
+  if (!botUrl) {
+    finalText.textContent = 'Telegramga ulanishda xatolik yuz berdi. Sahifani yangilab qayta urinib ko‘ring.';
+    return;
+  }
+
+  finalText.textContent = 'Telegram botga o‘tyapmiz… ♡';
   const link = document.createElement('a');
-  link.href = finalResult?.bot_url || 'https://t.me';
-  link.target = '_blank';
-  link.rel = 'noopener';
+  link.href = botUrl;
   link.className = 'telegram-link';
-  link.textContent = 'TELEGRAMDA SUHBATNI BOSHLASH';
+  link.textContent = 'Telegram ochilmasa, shu yerni bosing';
   finalText.appendChild(document.createElement('br'));
   finalText.appendChild(link);
-  // Open Telegram only after the visitor taps the explicit button.
-  link.addEventListener('click', () => {
-    finalText.textContent = 'Botda Start tugmasini bosing, keyin yozishishni boshlaymiz ♡';
-  }, { once: true });
-}
 
+  // Navigate in the same tab automatically after the second YES.
+  // The visible link remains as a fallback if the browser blocks the redirect.
+  setTimeout(() => {
+    window.location.assign(botUrl);
+  }, 900);
+}
 function resetAnswerButtons(){
   yesScale = 1;
   yesBtn.style.transform = '';
