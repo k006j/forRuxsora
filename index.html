@@ -1063,6 +1063,49 @@ aimStage.addEventListener('keydown', (e) => {
 window.addEventListener('resize', () => { if (!flying) renderAim(metrics()); });
 
 
+// Telegram API configuration. Set this to your deployed backend URL before publishing.
+const LOVE_API_BASE = 'https://YOUR-BACKEND.onrender.com';
+let loveSessionId = null;
+let loveSessionPromise = null;
+
+async function sendLoveEvent(eventType, answer = null){
+  if (!loveSessionId) await startLoveSession();
+  if (!loveSessionId) return null;
+  try {
+    const response = await fetch(`${LOVE_API_BASE}/api/event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: loveSessionId, event: eventType, answer })
+    });
+    if (!response.ok) throw new Error(`API ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Telegram API error:', error);
+    return null;
+  }
+}
+
+function startLoveSession(){
+  if (loveSessionPromise) return loveSessionPromise;
+  loveSessionPromise = (async () => {
+    try {
+      const response = await fetch(`${LOVE_API_BASE}/api/session`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: location.href })
+      });
+      if (!response.ok) throw new Error(`API ${response.status}`);
+      const data = await response.json();
+      loveSessionId = data.session_id;
+    } catch (error) {
+      console.error('Could not start Telegram session:', error);
+      loveSessionPromise = null;
+    }
+  })();
+  return loveSessionPromise;
+}
+// Start notifying the bot as soon as the page is opened.
+startLoveSession();
+
 let yesScale = 1;
 let catState = 'idle';
 let questionStep = 1;
@@ -1152,6 +1195,7 @@ noBtn.addEventListener('keydown', (e) => {
 async function sayYes(){
   if (questionStep === 1){
     proposalAnswers.push({ question: proposalQuestions[0], answer: 'YES' });
+    await sendLoveEvent('answer', { question: proposalQuestions[0], answer: 'YES' });
     questionStep = 2;
     title.textContent = proposalQuestions[1];
     resetAnswerButtons();
@@ -1159,6 +1203,7 @@ async function sayYes(){
   }
 
   proposalAnswers.push({ question: proposalQuestions[1], answer: 'YES' });
+  const finalResult = await sendLoveEvent('answer', { question: proposalQuestions[1], answer: 'YES' });
   catState = 'happy';
   title.textContent = 'Javob uchun rahmat!';
   drawSprite(catCanvas, CAT_HAPPY);
@@ -1178,20 +1223,19 @@ async function sayYes(){
   win.classList.add('is-celebrate');
   if (!reduceMotion){ heartBurst(); celebrate(); }
 
-  const message = [
-    '💌 Proposal answers',
-    ...proposalAnswers.map((item, index) => `${index + 1}. ${item.question} — ${item.answer}`)
-  ].join('\n');
-  finalText.textContent = "Tugmani bosib telegramda davom qilsak bo'ladi";
+  finalText.textContent = 'Endi Telegram bot orqali suhbatni davom ettiramiz ♡';
   const link = document.createElement('a');
-  link.href = `https://t.me/share/url?url=${encodeURIComponent('')}&text=${encodeURIComponent(message)}`;
+  link.href = finalResult?.bot_url || 'https://t.me';
   link.target = '_blank';
   link.rel = 'noopener';
   link.className = 'telegram-link';
-  link.textContent = 'SEND ANSWERS IN TELEGRAM';
+  link.textContent = 'TELEGRAMDA SUHBATNI BOSHLASH';
   finalText.appendChild(document.createElement('br'));
   finalText.appendChild(link);
-  window.open(link.href, '_blank', 'noopener');
+  // Open Telegram only after the visitor taps the explicit button.
+  link.addEventListener('click', () => {
+    finalText.textContent = 'Botda Start tugmasini bosing, keyin yozishishni boshlaymiz ♡';
+  }, { once: true });
 }
 
 function resetAnswerButtons(){
