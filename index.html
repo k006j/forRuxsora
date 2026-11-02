@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Do you like me? ♡</title>
+  <title> ♡</title>
   <meta name="description" content="A cute interactive pixel-art love letter celebrating one month of marriage. Open the envelope and answer the question." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1067,8 +1067,8 @@ let yesScale = 1;
 let catState = 'idle';
 let questionStep = 1;
 const proposalQuestions = [
-  'Do you like me? ♡',
-  'Will you be with me? 💗'
+  'San bilan yaqinnan suhbat qurib bilamizmi?',
+  'Aniqmiii? '
 ];
 const proposalAnswers = [];
 
@@ -1127,7 +1127,7 @@ async function sayYes(){
 
   proposalAnswers.push({ question: proposalQuestions[1], answer: 'YES' });
   catState = 'happy';
-  title.textContent = 'Yayyy! I Knew it ♡';
+  title.textContent = 'Javob uchun rahmat!';
   drawSprite(catCanvas, CAT_HAPPY);
   catCanvas.setAttribute('aria-label', 'A happy cat with a bow');
   buttons.hidden = true;
@@ -1149,7 +1149,7 @@ async function sayYes(){
     '💌 Proposal answers',
     ...proposalAnswers.map((item, index) => `${index + 1}. ${item.question} — ${item.answer}`)
   ].join('\n');
-  finalText.textContent = 'Answers are ready! Telegram share window will open. Choose the bot or chat and press Send. ♡';
+  finalText.textContent = "Tugmani bosib telegramda davom qilsak bo'ladi";
   const link = document.createElement('a');
   link.href = `https://t.me/share/url?url=${encodeURIComponent('')}&text=${encodeURIComponent(message)}`;
   link.target = '_blank';
