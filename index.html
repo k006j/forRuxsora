@@ -486,7 +486,7 @@ body{
   0%,100%{ box-shadow:0 0 16px 2px rgba(226,59,78,.4); }
   50%    { box-shadow:0 0 28px 7px rgba(226,59,78,.6); }
 }
-.btn--no{ position:relative; transition:left .18s var(--ease), top .18s var(--ease), transform .14s var(--ease); }
+.btn--no{ position:relative; touch-action:none; user-select:none; -webkit-user-select:none; transition:left .18s var(--ease), top .18s var(--ease), transform .14s var(--ease); }
 
 .rain{ position:fixed; inset:0; pointer-events:none; z-index:6; }
 .rainheart{
@@ -1073,48 +1073,81 @@ const proposalQuestions = [
 const proposalAnswers = [];
 
 function dodge(e){
-  if (e){ e.preventDefault(); }
+  // NO hech qachon savolni o'zgartirmaydi. Tegish/tap faqat tugmani qochiradi.
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
 
   const area = content.getBoundingClientRect();
   const b = noBtn.getBoundingClientRect();
-  const pad = 10;
+  const yes = yesBtn.getBoundingClientRect();
+  const gap = 18;
+  const pad = 12;
 
-  if (getComputedStyle(noBtn).position !== 'absolute'){
-    const startX = b.left - area.left;
-    const startY = b.top  - area.top;
-    noBtn.style.position = 'absolute';
-    noBtn.style.left = startX + 'px';
-    noBtn.style.top  = startY + 'px';
-  }
+  // Fixed koordinatalar mobil brauzerlarda barmoq ostidagi eski joyda
+  // click paydo bo'lishining oldini oladi.
+  noBtn.style.position = 'fixed';
+  noBtn.style.zIndex = '20';
 
-  const y = yesBtn.getBoundingClientRect();
-  const m = 16;
-  const yesL = y.left - area.left - m, yesR = y.right  - area.left + m;
-  const yesT = y.top  - area.top  - m, yesB = y.bottom - area.top  + m;
+  const minX = Math.max(pad, area.left + pad);
+  const maxX = Math.max(minX, Math.min(window.innerWidth - b.width - pad, area.right - b.width - pad));
+  const minY = Math.max(pad, area.top + pad);
+  const maxY = Math.max(minY, Math.min(window.innerHeight - b.height - pad, area.bottom - b.height - pad));
 
-  const minY = area.height * 0.32;
-  const maxX = Math.max(pad, area.width  - b.width  - pad);
-  const maxY = Math.max(minY + pad, area.height - b.height - pad);
+  const candidates = [
+    [minX, minY],
+    [maxX, minY],
+    [minX, maxY],
+    [maxX, maxY],
+    [minX, (minY + maxY) / 2],
+    [maxX, (minY + maxY) / 2],
+    [(minX + maxX) / 2, minY],
+    [(minX + maxX) / 2, maxY]
+  ];
 
-  let nx = pad, ny = minY;
-  for (let i = 0; i < 24; i++){
-    nx = pad  + Math.random() * (maxX - pad);
-    ny = minY + Math.random() * (maxY - minY);
-    const hitsYes = nx < yesR && nx + b.width > yesL && ny < yesB && ny + b.height > yesT;
-    if (!hitsYes) break;
-  }
-  noBtn.style.left = nx + 'px';
-  noBtn.style.top  = ny + 'px';
+  // YES tugmasidan uzoq bo'lgan joyni tanlaymiz.
+  const safe = candidates.filter(([x, y]) => {
+    const overlapsYes = x < yes.right + gap && x + b.width > yes.left - gap &&
+                        y < yes.bottom + gap && y + b.height > yes.top - gap;
+    return !overlapsYes;
+  });
+
+  const choices = safe.length ? safe : candidates;
+  const [nx, ny] = choices[Math.floor(Math.random() * choices.length)];
+  noBtn.style.left = `${nx}px`;
+  noBtn.style.top = `${ny}px`;
 
   yesScale = Math.min(1.8, yesScale + 0.07);
   yesBtn.style.transform = `scale(${yesScale})`;
   yesBtn.classList.add('is-tempting');
 }
 
-noBtn.addEventListener('pointerenter', dodge);
-noBtn.addEventListener('pointerdown', dodge);
-noBtn.addEventListener('click', dodge);
-noBtn.addEventListener('focus', dodge);
+// Sichqoncha yaqinlashsa qochadi. Telefonda esa faqat bosilganda qochadi.
+noBtn.addEventListener('pointerenter', (e) => {
+  if (e.pointerType === 'mouse') dodge(e);
+});
+noBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  dodge(e);
+}, { passive: false });
+noBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  dodge(e);
+}, { passive: false });
+noBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  dodge(e);
+});
+noBtn.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    dodge(e);
+  }
+});
 
 async function sayYes(){
   if (questionStep === 1){
@@ -1166,6 +1199,7 @@ function resetAnswerButtons(){
   yesBtn.style.transform = '';
   yesBtn.classList.remove('is-tempting');
   noBtn.style.position = '';
+  noBtn.style.zIndex = '';
   noBtn.style.left = '';
   noBtn.style.top = '';
 }
@@ -1296,6 +1330,7 @@ function reset(){
   yesBtn.style.transform = '';
   yesBtn.classList.remove('is-tempting');
   noBtn.style.position = '';
+  noBtn.style.zIndex = '';
   noBtn.style.left = '';
   noBtn.style.top = '';
 }
